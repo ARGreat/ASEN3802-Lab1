@@ -1,0 +1,28 @@
+clear; clc; close all;
+
+%% Part1 Task 1 %%
+
+
+%Caluclate MOIA
+
+R = 3/16; % inches
+r = 2/16; % inches
+d = 4.92126; % inche;
+I = pi/4*(R^4-r^4); % inches^4
+I_x = 4*I +  4*(R^2-r^2)*pi*d^2; % inches^4
+L = 16;
+P = 10;
+%% Part 1 Task 2: Equivalent Beam Model with Centered Load
+E = 10^10^6; %psi
+
+%Build a System of Equations Matrix
+A = 1/(E*I).*[0,1;1,0];
+B = -1/(E*I).*[P/4*(L/2)^2;0];
+C = inv(A)*B
+
+%Check work
+C1 = (P/4*(L/2)^2+C(2))
+
+%% Part 1 Task 3: Equivalent Beam Model with Off-centered Load
+
+
