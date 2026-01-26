@@ -1,0 +1,6 @@
+function data = ReadDate(filename)
+dataMat = readtable(filename);
+varNames = {"Loading Case (lbs)","F0 (lbf)","F1 (lbf)", "F2 (lbf)", "F3D (lbf)","LVDT (in)"};
+data = table(dataMat(:,1),dataMat(:,2),dataMat(:,3),dataMat(:,4),dataMat(:,5),VariableNames=varNames);
+
+end
