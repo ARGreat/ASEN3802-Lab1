@@ -7,7 +7,7 @@ clear; clc; close all;
 
 R = 3/16; % inches
 r = 2/16; % inches
-d = 4.92126; % inche;
+d = 4.92126; % inche; 
 I = pi/4*(R^4-r^4); % inches^4
 I_x = 4*I +  4*(R^2-r^2)*pi*d^2; % inches^4
 L = 16;
@@ -22,7 +22,5 @@ C = inv(A)*B
 
 %Check work
 C1 = (P/4*(L/2)^2+C(2))
-
-%% Part 1 Task 3: Equivalent Beam Model with Off-centered Load
 
 

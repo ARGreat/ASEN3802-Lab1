@@ -13,9 +13,8 @@ R = 3/16; % inches
 r = 2/16; % inches
 L = 16; %feet
 E = 10*10^6; %psi
-I = pi/4*(R^4-r^4); %I aint calculating these units
-A = (R^2-r^2)*pi; %Inches^2
-c = 4.92126; %Inches
+I = pi/4*(R^4-r^4);
+A = (R^2-r^2)*pi;
 
 %Load in Data
 Case1 = ReadData("Data/Case 1 data");
@@ -33,19 +32,13 @@ RSquared = calculateUncertainty(Data)'
 
 %Calculate Expected Displacement
 P = [0,10,20,30,40,50,60,50,40,30,20,10,0]; %Load values to test
-[a,nu,F_i] = SingleLoadNonCentered(Case2,P,L,E,I,A,c)
+[a,nu,F_i] = SingleLoadNonCentered(Case2,P,L,E,I,A)
 
-figure(2006); hold on;
-plot(Case2.LoadingCase,Case2.LVDT);
-plot(P,nu);
-xlabel("Loading Case")
-ylabel("Dispalcement at center of beam")
-legend("Data", "Expected")
 
 %% Task 2
 %a -> location of load
 %x -> location of interest
-function [a,nu,F_i] = SingleLoadNonCentered(data, P,L*12,E,I,A,c)
+function [a,nu,F_i] = SingleLoadNonCentered(data, P,L,E,I,A)
    
     %Find Displacement (a)
     F_Ay = data.F0(:) + data.F1(:);
@@ -58,7 +51,7 @@ function [a,nu,F_i] = SingleLoadNonCentered(data, P,L*12,E,I,A,c)
     %Calulcated dispalcement and 
     nu = P.*(L-a)/(12*E*I).*((3*L^2)/4-(L-a).^2);
     internal_stress = P.*((L-a)*c/(2*I));
-    F_i = internal_stress.*(A);
+    F_i = internal_stress.*(A/);
 end
 
 %% Functions
