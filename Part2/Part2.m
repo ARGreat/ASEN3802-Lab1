@@ -22,7 +22,6 @@ Case1 = ReadData("Data/Case 1 data");
 Case2 = ReadData("Data/Case 2 data");
 Case3 = ReadData("Data/Case 3 data");
 Data = {Case1,Case2,Case3};
-
 %Plots of Data
 plotData(2001,"F0",Data, [0,65,0,35],{"lb","lb"})
 plotData(2002,"F1",Data, [0,65,0,35],{"lb","lb"})
@@ -76,6 +75,15 @@ w
 end
 
 %% Functions
+plotData(2001,"F0",Data, [0,65,0,35],{"N","Kg"})
+plotData(2002,"F1",Data, [0,65,0,35],{"N","Kg"})
+plotData(2003,"F2",Data, [0,65,0,35],{"N","Kg"})
+plotData(2004,"F3D",Data, [0,65,-90,-10],{"N","Kg"})
+plotData(2005,"LVDT",Data, [0,65,0,.07],{"m","Kg"})
+
+RSquared = calculateUncertainty(Data);
+[Stress_part3,Deflection_part3] = Part3Model(L,E,I,A,c,Case3);
+
 
 function plotData(figNum, dataElement, data, axisLimits,units)
     figure(figNum);
@@ -101,7 +109,7 @@ function RSquared = calculateUncertainty(data)
     RSquared = struct();
     
     fieldNames = fieldnames(data{1});
-    dataFields = fieldNames(2:6);
+    dataFields = fieldNames(2:5);
 
     for f = 1:numel(dataFields)
         fieldName = dataFields{f};
@@ -114,7 +122,25 @@ function RSquared = calculateUncertainty(data)
     
             Stats = fitlm(x,y);
             caseName = sprintf("Case%d", i);
-            RSquared.(fieldName).(caseName) = Stats.Rsquared.Ordinary;
+            RSquared.(fieldName).(caseName) = Stats.Rsquared.Adjusted;
         end
     end
+end
+
+
+function [Stress_Part3, Deflection_Part3] = Part3Model(L,E,I_x,A,c,Case3)
+L_in = (L*0.250)*39.37; %Feet to inches here
+F_ly = Case3.LoadingCase./2;
+%C_y = Case3.F2;
+
+%a = ((F_ry - C_y.*L))./((-F_ly + F_ry)); %This doesn't work and its
+%important, because it shows we can't find a just with reaction forces,
+%because things will cancel out.
+F3D_initial = 86;
+Delta_Fi = Case3.F3D+F3D_initial;
+a = (Delta_Fi*I_x)./(A*c.*F_ly);
+a(~isfinite(a)) = 0;
+Deflection_Part3 = ((F_ly .* a)./(6*E*I_x)).*((3*L_in^2)/4 - a.^2);
+
+Stress_Part3 = (F_ly.*a*c)/I_x;
 end
