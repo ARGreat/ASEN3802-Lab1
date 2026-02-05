@@ -7,61 +7,30 @@
 
 clear; clc; close all
 
-%Constants
-%P,L,E,I,A
 R = 3/16; % inches
 r = 2/16; % inches
-L = 16; %feet
-E = 10*10^6; %psi
-I = pi/4*(R^4-r^4); %I aint calculating these units
+L = 16; %bays
+E = 1*10^7 ; %psi
+d = 4.92126;
+I = pi/4*(R^4-r^4); % inches^4
+I_x = 4*I +  4*(R^2-r^2)*pi*d^2; %in^4
 A = (R^2-r^2)*pi; %Inches^2
 c = 4.92126; %Inches
-
 %Load in Data
 Case1 = ReadData("Data/Case 1 data");
 Case2 = ReadData("Data/Case 2 data");
 Case3 = ReadData("Data/Case 3 data");
 Data = {Case1,Case2,Case3};
-
 %Plots of Data
 plotData(2001,"F0",Data, [0,65,0,35],{"N","Kg"})
 plotData(2002,"F1",Data, [0,65,0,35],{"N","Kg"})
 plotData(2003,"F2",Data, [0,65,0,35],{"N","Kg"})
 plotData(2004,"F3D",Data, [0,65,-90,-10],{"N","Kg"})
 plotData(2005,"LVDT",Data, [0,65,0,.07],{"m","Kg"})
-RSquared = calculateUncertainty(Data)'
 
-%Calculate Expected Displacement
-P = [0,10,20,30,40,50,60,50,40,30,20,10,0]; %Load values to test
-[a,nu,F_i] = SingleLoadNonCentered(Case2,P,L,E,I,A,c)
+RSquared = calculateUncertainty(Data);
+[Stress_part3,Deflection_part3] = Part3Model(L,E,I,A,c,Case3);
 
-figure(2006); hold on;
-plot(Case2.LoadingCase,Case2.LVDT);
-plot(P,nu);
-xlabel("Loading Case")
-ylabel("Dispalcement at center of beam")
-legend("Data", "Expected")
-
-%% Task 2
-%a -> location of load
-%x -> location of interest
-function [a,nu,F_i] = SingleLoadNonCentered(data, P,L*12,E,I,A,c)
-   
-    %Find Displacement (a)
-    F_Ay = data.F0(:) + data.F1(:);
-    F_By = data.F2(:);
-    
-    %Caluclate a for each test
-    a = (16.*F_By)./(F_Ay+F_By);
-    %Take median value for "average"
-    a = median(a);
-    %Calulcated dispalcement and 
-    nu = P.*(L-a)/(12*E*I).*((3*L^2)/4-(L-a).^2);
-    internal_stress = P.*((L-a)*c/(2*I));
-    F_i = internal_stress.*(A);
-end
-
-%% Functions
 
 function plotData(figNum, dataElement, data, axisLimits,units)
     figure(figNum);
@@ -87,7 +56,7 @@ function RSquared = calculateUncertainty(data)
     RSquared = struct();
     
     fieldNames = fieldnames(data{1});
-    dataFields = fieldNames(2:6);
+    dataFields = fieldNames(2:5);
 
     for f = 1:numel(dataFields)
         fieldName = dataFields{f};
@@ -100,7 +69,25 @@ function RSquared = calculateUncertainty(data)
     
             Stats = fitlm(x,y);
             caseName = sprintf("Case%d", i);
-            RSquared.(fieldName).(caseName) = Stats.Rsquared.Ordinary;
+            RSquared.(fieldName).(caseName) = Stats.Rsquared.Adjusted;
         end
     end
+end
+
+
+function [Stress_Part3, Deflection_Part3] = Part3Model(L,E,I_x,A,c,Case3)
+L_in = (L*0.250)*39.37; %Feet to inches here
+F_ly = Case3.LoadingCase./2;
+%C_y = Case3.F2;
+
+%a = ((F_ry - C_y.*L))./((-F_ly + F_ry)); %This doesn't work and its
+%important, because it shows we can't find a just with reaction forces,
+%because things will cancel out.
+F3D_initial = 86;
+Delta_Fi = Case3.F3D+F3D_initial;
+a = (Delta_Fi*I_x)./(A*c.*F_ly);
+a(~isfinite(a)) = 0;
+Deflection_Part3 = ((F_ly .* a)./(6*E*I_x)).*((3*L_in^2)/4 - a.^2);
+
+Stress_Part3 = (F_ly.*a*c)/I_x;
 end
