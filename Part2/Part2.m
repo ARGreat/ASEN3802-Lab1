@@ -8,14 +8,14 @@
 clear; clc; close all
 
 %Constants
-%P,L,E,I,A
 R = 3/16; % inches
 r = 2/16; % inches
-L = 16; %feet
+L =  4*3.28084*12; %inches
 E = 10*10^6; %psi
-I = pi/4*(R^4-r^4); %I aint calculating these units
+c = .125*3.28084*12; %Inches
+I = pi/4*(R^4-r^4); % inches^4
+I_x = 4*I+4*(R^2-r^2)*pi*c^2; %I aint calculating these units
 A = (R^2-r^2)*pi; %Inches^2
-c = 4.92126; %Inches
 
 %Load in Data
 Case1 = ReadData("Data/Case 1 data");
@@ -24,41 +24,55 @@ Case3 = ReadData("Data/Case 3 data");
 Data = {Case1,Case2,Case3};
 
 %Plots of Data
-plotData(2001,"F0",Data, [0,65,0,35],{"N","Kg"})
-plotData(2002,"F1",Data, [0,65,0,35],{"N","Kg"})
-plotData(2003,"F2",Data, [0,65,0,35],{"N","Kg"})
-plotData(2004,"F3D",Data, [0,65,-90,-10],{"N","Kg"})
-plotData(2005,"LVDT",Data, [0,65,0,.07],{"m","Kg"})
+plotData(2001,"F0",Data, [0,65,0,35],{"lb","lb"})
+plotData(2002,"F1",Data, [0,65,0,35],{"lb","lb"})
+plotData(2003,"F2",Data, [0,65,0,35],{"lb","lb"})
+plotData(2004,"F3D",Data, [0,65,-90,-10],{"lb","lb"})
+plotData(2005,"LVDT",Data, [0,65,0,.07],{"in","lb"})
 RSquared = calculateUncertainty(Data)'
 
 %Calculate Expected Displacement
-P = [0,10,20,30,40,50,60,50,40,30,20,10,0]; %Load values to test
-[a,nu,F_i] = SingleLoadNonCentered(Case2,P,L,E,I,A,c)
+P = [0,10,20,30,40,50,40,30,20,10,0]; %Load values to test
+[a,nu,F_i] = SingleLoadNonCentered(Case2,P,L,E,I_x,A,c)
 
-figure(2006); hold on;
-plot(Case2.LoadingCase,Case2.LVDT);
-plot(P,nu);
-xlabel("Loading Case")
+figure(2006); hold on; grid on;
+scatter(Case2.LoadingCase,Case2.LVDT,'filled');
+plot(P,nu,LineStyle='--');
+title("Comparison of Measured Data and Model Prediction")
+xlabel("Magnitude of Load P")
 ylabel("Dispalcement at center of beam")
-legend("Data", "Expected")
+legend("Measured Deflection", "Modeled Beam Deflection")
 
 %% Task 2
 %a -> location of load
 %x -> location of interest
-function [a,nu,F_i] = SingleLoadNonCentered(data, P,L*12,E,I,A,c)
-   
-    %Find Displacement (a)
-    F_Ay = data.F0(:) + data.F1(:);
-    F_By = data.F2(:);
+function [a,nu,F_i] = SingleLoadNonCentered(data,P,L,E,I_x,A,c)
     
-    %Caluclate a for each test
-    a = (16.*F_By)./(F_Ay+F_By);
-    %Take median value for "average"
-    a = median(a);
-    %Calulcated dispalcement and 
-    nu = P.*(L-a)/(12*E*I).*((3*L^2)/4-(L-a).^2);
-    internal_stress = P.*((L-a)*c/(2*I));
-    F_i = internal_stress.*(A);
+    % Measured reactions
+    F_A_meas = data.F0 + data.F1;
+    F_B_meas = data.F2;
+
+    % Infer load location
+    P_meas = F_A_meas + F_B_meas;
+    a=(L .* F_B_meas ./ P_meas);
+    a = mean(a(11:end));
+
+    % Theoretical reaction
+    R_A = P.*(L-a)/L;
+
+    % Integration constant
+    c1 = (P.*(L-a).^3 - R_A.*L.^3)/(6*L);
+
+    % Midspan deflection
+    x = L/2;
+
+    if x <= a
+        nu = -(R_A.*x.^3/6 + c1.*x)/(E*I_x);
+    else
+        nu = -(R_A.*x.^3/6 - P.*(x-a).^3/6 + c1.*x)/(E*I_x);
+    end
+w
+    F_i = 0;
 end
 
 %% Functions
